@@ -6,4 +6,6 @@ df_hypo = pd.read_csv('hypotheses_us.csv')
 df_orders = pd.read_csv('orders_us.csv')
 df_visits = pd.read_csv('visits_us.csv')
 
+df_hypo.info()
+df_orders.info()
 df_visits.info()
