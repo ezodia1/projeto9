@@ -1,4 +1,8 @@
+#Import de Bibliotecas
+
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 #ATRIBUIÇÃO DE DATAFRAMES
 
@@ -97,7 +101,40 @@ rice_rank['rank_RICE'] = rice_rank.index
 comparison = ice_rank.merge(rice_rank[['hypothesis', 'rank_RICE']], on='hypothesis')
 comparison['variação'] = comparison['rank_ICE'] - comparison['rank_RICE']
 
-print(comparison[['hypothesis', 'rank_ICE', 'rank_RICE', 'variação']].to_string())
+#print(comparison[['hypothesis', 'rank_ICE', 'rank_RICE', 'variação']].to_string())
 
 
-#Ao utilizar o método RICE nós adicionamos a variável(fator) alcance ao cálculo, isso nos permite entender quantas pessoas serão afetadas pela hipótese que queremos testar. Ao incluir o alcance nós temos uma melhor perspectiva  de como isso vai afetar nosso público alvo, por esse motivo hipóteses que tinham um alcance menor acabaram abaixando no RICE em relação ao ICE enquanto as que alcançavam mais pessoas acabaram subindo na ordem de prioridade
+#Ao utilizar o método RICE nós adicionamos a variável(fator) alcance ao cálculo, isso nos permite entender quantas pessoas serão afetadas pela hipótese que queremos testar. Ao incluir o alcance nós temos uma melhor perspectiva  de como isso vai afetar nosso público alvo, o método RICE de certa forma penaliza hipóteses que tenham um alto impacto, mas baixo alcance e premia hipóteses que afetem uma ampla gama de usuários por esse motivo hipóteses que tinham um alcance menor acabaram abaixando no RICE em relação ao ICE enquanto as que alcançavam mais pessoas acabaram subindo na ordem de prioridade
+
+
+   #ANÁLISE DE TESTE A/B
+
+
+#Faça um gráfico da receita acumulada por grupo. Tire conclusões e crie conjecturas.
+
+total_revenue = df_orders.groupby(['date', 'group'])['revenue'].sum().reset_index()
+
+total_revenue['cumulative'] = total_revenue.groupby('group')['revenue'].cumsum()
+
+print(total_revenue)
+
+plt.figure(figsize=(12, 8))
+sns.lineplot(data=total_revenue, x='date', y='cumulative', hue='group')
+plt.savefig('total_revenue.png')
+plt.close()
+
+#De um modo geral as receitas de ambos os grupos são muito semelhantes, porém o grupo testado (B) teve um aumento significativo no dia 18/08/2019 o que impulsionou significativamente a receita acumulada
+
+#Faça um gráfico do tamanho médio acumulado do pedido por grupo. Tire conclusões e crie conjecturas.
+
+orders_mean = df_orders.groupby(['date', 'group']).agg(revenue=('revenue', 'sum'), orders=('transactionid', 'count')).reset_index()
+
+orders_mean['cum_revenue'] = orders_mean.groupby('group')['revenue'].cumsum()
+orders_mean['cum_orders'] = orders_mean.groupby('group')['orders'].cumsum()
+
+orders_mean['cum_avg_order'] = orders_mean['cum_revenue'] / orders_mean['cum_orders']
+
+plt.figure(figsize=(12,8))
+sns.lineplot(data=orders_mean, x='date', y='cum_avg_order', hue='group')
+plt.savefig('orders_mean.png')
+plt.close()
