@@ -172,4 +172,46 @@ plt.tight_layout()
 plt.savefig('orders_pivot.png')
 plt.close()
 
-#O grupo B 
+# A partir desse gráfico é possível perceber que na maior parte do tempo o grupo B esteve com uma margem maior que o grupo A. Mesmo com uma queda no início do teste A/B, de forma geral o grupo B se manteve superior ao grupo A. Porém ainda há o fator atenuante do pico do dia 18/08 que pode estar inflando artificialmente essa diferença devido a possíveis outliers, o que deve ser considerado na tomada de decisão final.
+
+#Calcule a taxa de conversão de cada grupo como a proporção de pedidos para o número de visitas para cada dia. Trace as taxas de conversão diárias dos dois grupos e descreva a diferença. Tire conclusões e crie conjecturas.
+
+#print(df_visits)
+#print(df_orders)
+
+orders_count_gb = df_orders.groupby(['date', 'group'])['transactionid'].size().reset_index()
+orders_count_gb = orders_count_gb.rename(columns={'transactionid': 'orders_per_day'})
+#print(orders_count_gb)
+
+visits_group_gb = df_visits.groupby(['date', 'group'])['visits'].sum().reset_index()
+#print(visits_group_gb)
+
+df_conversion_rate = pd.merge(visits_group_gb, orders_count_gb, on=['date', 'group'], how='left')
+
+df_conversion_rate['conversion_rate'] = (df_conversion_rate['orders_per_day'] / df_conversion_rate['visits']) * 100
+
+#print(df_conversion_rate)
+
+plt.figure(figsize=(12, 8))
+sns.lineplot(data=df_conversion_rate, x='date', y='conversion_rate', hue='group')
+
+# Média de cada grupo
+mean_a = df_conversion_rate[df_conversion_rate['group'] == 'A']['conversion_rate'].mean()
+mean_b = df_conversion_rate[df_conversion_rate['group'] == 'B']['conversion_rate'].mean()
+
+plt.axhline(y=mean_a, color='blue', linestyle='--', alpha=0.5, label=f'Média A: {mean_a:.2f}%')
+plt.axhline(y=mean_b, color='orange', linestyle='--', alpha=0.5, label=f'Média B: {mean_b:.2f}%')
+
+plt.title('Taxa de conversão diária por grupo')
+plt.xlabel('Data')
+plt.ylabel('Taxa de conversão (%)')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('conversion_rate.png')
+plt.close()
+
+# A partir dos dados da taxa de conversão diária e da média ao longo do mês, percebe-se que o grupo B apresenta uma média de conversão maior que o grupo A. Diferente das análises anteriores, a taxa de conversão não leva em conta o valor dos pedidos, apenas se a visita resultou em compra ou não. Isso significa que os outliers de receita do dia 18/08 não distorcem esse resultado, tornando essa uma evidência mais robusta da superioridade do grupo B.
+
+
+#Faça um gráfico da diferença relativa na conversão cumulativa para o grupo B em comparação com o grupo A. Tire conclusões e crie conjecturas.
