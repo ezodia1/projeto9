@@ -116,7 +116,7 @@ total_revenue = df_orders.groupby(['date', 'group'])['revenue'].sum().reset_inde
 
 total_revenue['cumulative'] = total_revenue.groupby('group')['revenue'].cumsum()
 
-print(total_revenue)
+#print(total_revenue)
 
 plt.figure(figsize=(12, 8))
 sns.lineplot(data=total_revenue, x='date', y='cumulative', hue='group')
@@ -138,3 +138,38 @@ plt.figure(figsize=(12,8))
 sns.lineplot(data=orders_mean, x='date', y='cum_avg_order', hue='group')
 plt.savefig('orders_mean.png')
 plt.close()
+
+# Novamente houve um pico no dia 18/08/2019 para o grupo B. Diferente do gráfico de receita acumulada, aqui a diferença entre os grupos é mais evidente, com o grupo B abrindo uma vantagem significativa a partir dessa data. Esse aumento abrupto no ticket médio do grupo B indica a possível presença de outliers puxando a média para cima, e não necessariamente que o grupo B está performando melhor de forma orgânica. Para uma análise mais precisa, será necessário investigar os pedidos de valor extremo nos próximos passos.
+
+
+#Faça um gráfico da diferença relativa no tamanho médio acumulado do pedido para o grupo B em comparação com o grupo A. Faça conclusões e crie conjecturas.
+
+orders_pivot = orders_mean.pivot(index='date', columns='group', values='cum_avg_order')
+
+orders_pivot['relative_diff'] = (orders_pivot['B'] - orders_pivot['A']) / orders_pivot['A']
+
+orders_pivot['relative_diff'] = orders_pivot['relative_diff'] * 100
+
+#print(orders_pivot)
+
+plt.figure(figsize=(12, 8))
+sns.lineplot(data=orders_pivot, x=orders_pivot.index, y='relative_diff')
+
+for date, value in orders_pivot['relative_diff'].items():
+    plt.annotate(f'{value:.1f}%', 
+                xy=(date, value), 
+                xytext=(0, 8), 
+                textcoords='offset points',
+                ha='center',
+                fontsize=7)
+
+plt.axhline(y=0, color='red', linestyle='--')
+plt.title('Diferença relativa no tamanho médio acumulado do pedido (B vs A)')
+plt.xlabel('Data')
+plt.ylabel('Diferença relativa (%)')
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('orders_pivot.png')
+plt.close()
+
+#O grupo B 
