@@ -3,6 +3,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 #ATRIBUIÇÃO DE DATAFRAMES
 
@@ -120,6 +121,11 @@ total_revenue['cumulative'] = total_revenue.groupby('group')['revenue'].cumsum()
 
 plt.figure(figsize=(12, 8))
 sns.lineplot(data=total_revenue, x='date', y='cumulative', hue='group')
+plt.title('Receita acumulada por grupo')
+plt.xlabel('Data')
+plt.ylabel('Receita acumulada (R$)')
+plt.grid(True)
+plt.tight_layout()
 plt.savefig('total_revenue.png')
 plt.close()
 
@@ -134,8 +140,13 @@ orders_mean['cum_orders'] = orders_mean.groupby('group')['orders'].cumsum()
 
 orders_mean['cum_avg_order'] = orders_mean['cum_revenue'] / orders_mean['cum_orders']
 
-plt.figure(figsize=(12,8))
+plt.figure(figsize=(12, 8))
 sns.lineplot(data=orders_mean, x='date', y='cum_avg_order', hue='group')
+plt.title('Tamanho médio acumulado do pedido por grupo')
+plt.xlabel('Data')
+plt.ylabel('Ticket médio acumulado (R$)')
+plt.grid(True)
+plt.tight_layout()
 plt.savefig('orders_mean.png')
 plt.close()
 
@@ -215,3 +226,56 @@ plt.close()
 
 
 #Faça um gráfico da diferença relativa na conversão cumulativa para o grupo B em comparação com o grupo A. Tire conclusões e crie conjecturas.
+
+
+conversion_cum = df_conversion_rate.pivot(index='date', columns='group', values='conversion_rate')
+
+
+conversion_cum['cum_a'] = conversion_cum['A'].cumsum()
+conversion_cum['cum_b'] = conversion_cum['B'].cumsum()
+
+conversion_cum['relative_diff'] = (conversion_cum['cum_b'] - conversion_cum['cum_a']) / conversion_cum['cum_a'] * 100
+
+#print(conversion_cum)
+
+plt.figure(figsize=(12, 8))
+sns.lineplot(data=conversion_cum, x=conversion_cum.index, y='relative_diff')
+
+for date, value in conversion_cum['relative_diff'].items():
+    plt.annotate(f'{value:.1f}%', 
+                xy=(date, value), 
+                xytext=(0, 8), 
+                textcoords='offset points',
+                ha='center',
+                fontsize=7)
+
+plt.axhline(y=0, color='red', linestyle='--')
+plt.title('Diferença relativa na conversão cumulativa (B vs A)')
+plt.xlabel('Data')
+plt.ylabel('Diferença relativa (%)')
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('conversion_cum.png')
+plt.close()
+
+# Ao analisar o gráfico que mostra a diferença relativa na conversão cumulativa entre os grupos, fica claro que o grupo B apresenta uma taxa de conversão consistentemente maior que o grupo A ao longo do tempo. O único período em que o grupo B ficou abaixo foi nos primeiros dias do teste A/B, o que é esperado dado o volume ainda baixo de dados. Essa análise reforça a superioridade do grupo B sem ser influenciada pelos outliers de revenue identificados anteriormente.
+
+
+#Calcule os percentis 95 e 99 para o número de pedidos por usuário. Defina o ponto em que um ponto de dados se torna uma anomalia.
+
+orders_by_user = df_orders.groupby('visitorid')['transactionid'].count().reset_index()
+orders_by_user = orders_by_user.rename(columns={'transactionid': 'orders'})
+p95 = np.percentile(orders_by_user['orders'], 95)
+p99 = np.percentile(orders_by_user['orders'], 99)
+
+#print(f'Percentil 95: {p95}')
+#print(f'Percentil 99: {p99}')
+#print(orders_by_user.sample(50))
+
+#95% dos usuários fizeram somente 1 pedido, enquanto 99% dos usuários fizeram 2 pedidos ou menos, os usuários que realizaram 3 pedidos já entram como anomalia nesse caso.
+
+
+#Faça um gráfico de dispersão dos preços dos pedidos. Tire conclusões e crie conjecturas.
+
+plt.figure(figsize=(12, 8))
+sns.scatterplot(data=df_orders, x='date', y='revenue')
