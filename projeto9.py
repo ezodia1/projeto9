@@ -265,11 +265,11 @@ plt.close()
 
 orders_by_user = df_orders.groupby('visitorid')['transactionid'].count().reset_index()
 orders_by_user = orders_by_user.rename(columns={'transactionid': 'orders'})
-p95 = np.percentile(orders_by_user['orders'], 95)
-p99 = np.percentile(orders_by_user['orders'], 99)
+orders_by_user_p95 = np.percentile(orders_by_user['orders'], 95)
+orders_by_user_p99 = np.percentile(orders_by_user['orders'], 99)
 
-#print(f'Percentil 95: {p95}')
-#print(f'Percentil 99: {p99}')
+#print(f'Percentil 95: {orders_by_user_p95}')
+#print(f'Percentil 99: {orders_by_user_p99}')
 #print(orders_by_user.sample(50))
 
 #95% dos usuários fizeram somente 1 pedido, enquanto 99% dos usuários fizeram 2 pedidos ou menos, os usuários que realizaram 3 pedidos já entram como anomalia nesse caso.
@@ -278,4 +278,25 @@ p99 = np.percentile(orders_by_user['orders'], 99)
 #Faça um gráfico de dispersão dos preços dos pedidos. Tire conclusões e crie conjecturas.
 
 plt.figure(figsize=(12, 8))
-sns.scatterplot(data=df_orders, x='date', y='revenue')
+sns.scatterplot(data=df_orders, x='date', y='revenue', hue='group')
+plt.title('Dispersão dos preços dos pedidos')
+plt.xlabel('Data')
+plt.ylabel('Receita (R$)')
+plt.grid(True)
+plt.tight_layout()
+plt.savefig('revenue_dispersion.png')
+plt.close()
+
+#A partir desse gráfico de dispersão conseguimos ver dois outliers claros que favorecem o grupo B quando se trata da receita, no dia 13 e no dia 18 houveram dois picos que podem estar afetando a análise quando utilizamos a métrica de revenue.
+
+
+#Calcule os percentis 95 e 99 dos preços dos pedidos. Defina o ponto em que um ponto de dados se torna uma anomalia.
+
+revenue_p95 = np.percentile(df_orders['revenue'], 95)
+revenue_p99 = np.percentile(df_orders['revenue'], 99)
+print(f'Percentil 95: {revenue_p95}')
+print(f'Percentil 99: {revenue_p99}')
+
+#99% dos pedidos tem valor de 830 reais ou menos, o que significa que os dias que teve pedidos de 3000 e 20000 reais foram anomalias que não acontecem regularmente e podem enviesar a análise, o ponto de corte deve ser de 830 reais pra cima com base no percentil 99
+
+
