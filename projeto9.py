@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+from scipy import stats as st
 
 #ATRIBUIÇÃO DE DATAFRAMES
 
@@ -294,9 +295,100 @@ plt.close()
 
 revenue_p95 = np.percentile(df_orders['revenue'], 95)
 revenue_p99 = np.percentile(df_orders['revenue'], 99)
-print(f'Percentil 95: {revenue_p95}')
-print(f'Percentil 99: {revenue_p99}')
+#print(f'Percentil 95: {revenue_p95}')
+#print(f'Percentil 99: {revenue_p99}')
 
 #99% dos pedidos tem valor de 830 reais ou menos, o que significa que os dias que teve pedidos de 3000 e 20000 reais foram anomalias que não acontecem regularmente e podem enviesar a análise, o ponto de corte deve ser de 830 reais pra cima com base no percentil 99
 
 
+#Encontre a significância estatística da diferença na conversão entre os grupos usando os dados brutos. Tire conclusões e crie conjecturas.
+
+
+grupo_a_conversion = df_conversion_rate[df_conversion_rate['group'] == 'A']['conversion_rate']
+grupo_b_conversion = df_conversion_rate[df_conversion_rate['group'] == 'B']['conversion_rate']
+
+
+stat, p_value = st.mannwhitneyu(grupo_a_conversion, grupo_b_conversion, alternative='two-sided')
+
+print(f'p-value: {p_value}')
+
+if p_value < 0.05:
+    print('Diferença estatisticamente significativa')
+else:
+    print('Diferença não é estatisticamente significativa') 
+
+
+#O valor P-value se mostrou muito próximo do valor alpha, porém ainda assim não foi grande o suficiente para ter alguma significancia a partir dos dados brutos
+
+
+
+#Encontre a significância estatística da diferença no tamanho médio do pedido entre os grupos usando os dados brutos. Tire conclusões e crie conjecturas.
+
+
+grupo_a_sizemean = df_orders[df_orders['group'] == 'A']['revenue']
+grupo_b_sizemean = df_orders[df_orders['group'] == 'B']['revenue']
+
+stat, p_value = st.mannwhitneyu(grupo_a_sizemean, grupo_b_sizemean, alternative='two-sided')
+
+print(f'p-value: {p_value}')
+
+if p_value < 0.05:
+    print('Diferença estatisticamente significativa')
+else:
+    print('Diferença não é estatisticamente significativa')
+
+#A diferença não é estatisticamente significativa, há uma diferença abrupta entre o alpha e o pvalor
+
+
+
+#Encontre a significância estatística da diferença na conversão entre os grupos usando os dados filtrados. Tire conclusões e crie conjecturas.
+
+users_to_remove = orders_by_user[orders_by_user['orders'] > 2]['visitorid']
+df_orders_filtrado = df_orders[~df_orders['visitorid'].isin(users_to_remove)]
+
+orders_count_filtrado = df_orders_filtrado.groupby(['date', 'group'])['transactionid'].size().reset_index()
+orders_count_filtrado = orders_count_filtrado.rename(columns={'transactionid': 'orders_per_day'})
+
+df_conversion_filtrado = pd.merge(visits_group_gb, orders_count_filtrado, on=['date', 'group'], how='left')
+df_conversion_filtrado['conversion_rate'] = (df_conversion_filtrado['orders_per_day'] / df_conversion_filtrado['visits']) * 100
+
+grupo_a_filtrado = df_conversion_filtrado[df_conversion_filtrado['group'] == 'A']['conversion_rate']
+grupo_b_filtrado = df_conversion_filtrado[df_conversion_filtrado['group'] == 'B']['conversion_rate']
+
+stat, p_value = st.mannwhitneyu(grupo_a_filtrado, grupo_b_filtrado, alternative='two-sided')
+print(f'p-value: {p_value}')
+
+if p_value < 0.05:
+    print('Diferença estatisticamente significativa')
+else:
+    print('Diferença não é estatisticamente significativa')
+
+## Após a remoção dos usuários anômalos, o p-value caiu para 0.044, cruzando o limiar de significância de 0.05. Isso confirma que a diferença na taxa de conversão entre os grupos A e B é estatisticamente significativa com os dados filtrados, reforçando que o grupo B apresenta uma conversão genuinamente superior ao grupo A.
+
+
+#Encontre a significância estatística da diferença no tamanho médio do pedido entre os grupos usando os dados filtrados. Tire conclusões e crie conjecturas.
+
+
+
+grupo_a_sizemean_filtrado = df_orders[(df_orders['group'] == 'A') & (df_orders['revenue'] <= revenue_p99)]['revenue']
+grupo_b_sizemean_filtrado = df_orders[(df_orders['group'] == 'B') & (df_orders['revenue'] <= revenue_p99)]['revenue']
+
+stat, p_value = st.mannwhitneyu(grupo_a_sizemean_filtrado, grupo_b_sizemean_filtrado, alternative='two-sided')
+
+print(f'p-value: {p_value}')
+
+if p_value < 0.05:
+    print('Diferença estatisticamente significativa')
+else:
+    print('Diferença não é estatisticamente significativa')
+
+
+#Tome uma decisão com base nos resultados do teste. As decisões possíveis são: 1. Pare o teste, considere um dos grupos o líder. 2. Pare o teste, conclua que não há diferença entre os grupos. 3. Continue o teste.
+
+'''
+DECISÃO FINAL: 
+
+Com base nos resultados encontrados após diversos testes, utilizando de dados brutos, dados filtrados e diversas métricas como revenue e conversion_rate, os resultados se mostraram a favor do grupo testado B, mesmo desconsiderando os valores de anomalos, nossa hipótese ainda se mostrou favorável principalmente pelo parametro de taxa de conversão que aumentou no grupo testado durante o período de 1 mês, ambos os grupos foram filtrados e corrigidos, com base nisso eu tomo a decisão de parar o teste e considerar a o teste favorável a B
+
+
+'''
